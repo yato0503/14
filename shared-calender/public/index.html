@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>共有カレンダー</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>共有カレンダー</h1>
+
+<label>
+  <input type="checkbox" id="privateModeToggle">
+  <span id="modeLabel">共有モード</span>
+</label>
+
+<form id="eventForm">
+  <input type="date" id="date" required>
+  <input type="time" id="startTime" required>
+  <input type="time" id="endTime" required>
+  <input type="text" id="title" placeholder="予定" required>
+  <select id="type">
+    <option value="public">公開</option>
+    <option value="private">プライベート</option>
+  </select>
+  <button type="submit">追加</button>
+</form>
+
+<div id="calendar"></div>
+
+<script src="main.js"></script>
+</body>
+</html>
