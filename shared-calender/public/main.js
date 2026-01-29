@@ -1,6 +1,8 @@
 let events = [];
 
-const API_URL = "http://localhost:3000"; // サーバーURL
+// RenderのURLに変更してください
+const API_URL = "https://one4-1agj.onrender.com"; // 本番環境
+// const API_URL = "http://localhost:3000"; // ローカル環境
 
 document.addEventListener("DOMContentLoaded", () => {
   const calendar = document.getElementById("calendar");
@@ -15,28 +17,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ===== データ取得 =====
   async function loadEvents() {
-    const res = await fetch(`${API_URL}/events`);
-    events = await res.json();
-    renderCalendar();
+    try {
+      const res = await fetch(`${API_URL}/events`);
+      if (!res.ok) throw new Error('Failed to fetch events');
+      events = await res.json();
+      renderCalendar();
+    } catch (error) {
+      console.error('イベント取得エラー: - main.js:26', error);
+      // エラーが出てもカレンダーは表示する
+      renderCalendar();
+    }
   }
 
   // ===== データ保存 =====
   async function addEvent(date, startTime, endTime, title, type) {
-    const res = await fetch(`${API_URL}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, startTime, endTime, title, type })
-    });
-    const newEvent = await res.json();
-    events.push(newEvent);
-    renderCalendar();
+    try {
+      const res = await fetch(`${API_URL}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, startTime, endTime, title, type })
+      });
+      if (!res.ok) throw new Error('Failed to add event');
+      const newEvent = await res.json();
+      events.push(newEvent);
+      renderCalendar();
+    } catch (error) {
+      console.error('イベント追加エラー: - main.js:45', error);
+      alert('予定の追加に失敗しました。もう一度お試しください。');
+    }
   }
 
   async function deleteEvent(id) {
-    await fetch(`${API_URL}/events/${id}`, { method: "DELETE" });
-    events = events.filter(e => e.id !== id);
-    renderCalendar();
+    try {
+      await fetch(`${API_URL}/events/${id}`, { method: "DELETE" });
+      events = events.filter(e => e.id !== id);
+      renderCalendar();
+    } catch (error) {
+      console.error('イベント削除エラー: - main.js:56', error);
+      alert('予定の削除に失敗しました。');
+    }
   }
+
+  // ===== 自動更新機能（5秒ごと）=====
+  setInterval(() => {
+    loadEvents();
+  }, 5000); // 5秒ごとに更新
 
   // ===== プライベートモード切替 =====
   privateToggle.addEventListener("change", () => {
@@ -116,5 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
     titleInput.value = "";
   });
 
+  // 初回読み込み
   loadEvents();
 });
