@@ -1,10 +1,26 @@
 let events = [];
+let currentUserId = null;
 
 // RenderのURLに変更してください
 const API_URL = "https://one4-1agj.onrender.com"; // 本番環境
 // const API_URL = "http://localhost:3000"; // ローカル環境
 
+// ユーザーIDの取得または生成
+function getUserId() {
+  let userId = localStorage.getItem('calendarUserId');
+  if (!userId) {
+    // ランダムなIDを生成（例: user_1234567890）
+    userId = 'user_' + Date.now() + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('calendarUserId', userId);
+    console.log('新しいユーザーIDを生成しました: - main.js:15', userId);
+  }
+  return userId;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  // ユーザーIDを取得
+  currentUserId = getUserId();
+  
   const calendar = document.getElementById("calendar");
   const form = document.getElementById("eventForm");
   const dateInput = document.getElementById("date");
@@ -23,8 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       events = await res.json();
       renderCalendar();
     } catch (error) {
-      console.error('イベント取得エラー: - main.js:26', error);
-      // エラーが出てもカレンダーは表示する
+      console.error('イベント取得エラー: - main.js:42', error);
       renderCalendar();
     }
   }
@@ -35,14 +50,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(`${API_URL}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, startTime, endTime, title, type })
+        body: JSON.stringify({ 
+          date, 
+          startTime, 
+          endTime, 
+          title, 
+          type,
+          userId: currentUserId // ユーザーIDを送信
+        })
       });
       if (!res.ok) throw new Error('Failed to add event');
       const newEvent = await res.json();
       events.push(newEvent);
       renderCalendar();
     } catch (error) {
-      console.error('イベント追加エラー: - main.js:45', error);
+      console.error('イベント追加エラー: - main.js:67', error);
       alert('予定の追加に失敗しました。もう一度お試しください。');
     }
   }
@@ -53,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
       events = events.filter(e => e.id !== id);
       renderCalendar();
     } catch (error) {
-      console.error('イベント削除エラー: - main.js:56', error);
+      console.error('イベント削除エラー: - main.js:78', error);
       alert('予定の削除に失敗しました。');
     }
   }
@@ -61,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== 自動更新機能（5秒ごと）=====
   setInterval(() => {
     loadEvents();
-  }, 5000); // 5秒ごとに更新
+  }, 5000);
 
   // ===== プライベートモード切替 =====
   privateToggle.addEventListener("change", () => {
@@ -111,7 +133,15 @@ document.addEventListener("DOMContentLoaded", () => {
       td.addEventListener("click", () => { dateInput.value = dateStr; });
 
       events.forEach(ev => {
-        if (!isPrivateMode && ev.type === "private") return;
+        // プライベート予定の表示制御
+        if (ev.type === "private") {
+          // 自分のプライベート予定のみ表示
+          if (ev.userId !== currentUserId) return;
+        }
+        
+        // プライベートモードでは公開予定を非表示
+        if (isPrivateMode && ev.type === "public") return;
+        
         if (ev.date !== dateStr) return;
 
         const evDiv = document.createElement("div");
@@ -121,9 +151,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const del = document.createElement("button");
         del.textContent = "×";
         del.className = "delete-btn";
-        del.onclick = e => { e.stopPropagation(); deleteEvent(ev.id); };
+        
+        // 自分の予定のみ削除可能
+        if (ev.type === "public" || ev.userId === currentUserId) {
+          del.onclick = e => { e.stopPropagation(); deleteEvent(ev.id); };
+          evDiv.appendChild(del);
+        }
 
-        evDiv.appendChild(del);
         td.appendChild(evDiv);
       });
 

@@ -14,16 +14,22 @@ app.use(express.static('public'));
 const db = new sqlite3.Database("./calendar.db");
 
 db.serialize(() => {
+  // 既存のテーブルを削除して再作成（初回デプロイ後はコメントアウト推奨）
+  // db.run(`DROP TABLE IF EXISTS events`);
+  
   db.run(`
-    CREATE TABLE IF NOT EXISTS events (
+    CREATE TABLE events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT,
       startTime TEXT,
       endTime TEXT,
       title TEXT,
-      type TEXT
+      type TEXT,
+      userId TEXT
     )
   `);
+  
+  console.log('データベーステーブルを初期化しました - server.js:32');
 });
 
 // 全予定取得
@@ -36,13 +42,13 @@ app.get("/events", (req, res) => {
 
 // 予定追加
 app.post("/events", (req, res) => {
-  const { date, startTime, endTime, title, type } = req.body;
+  const { date, startTime, endTime, title, type, userId } = req.body;
   db.run(
-    "INSERT INTO events (date, startTime, endTime, title, type) VALUES (?, ?, ?, ?, ?)",
-    [date, startTime, endTime, title, type],
+    "INSERT INTO events (date, startTime, endTime, title, type, userId) VALUES (?, ?, ?, ?, ?, ?)",
+    [date, startTime, endTime, title, type, userId],
     function(err) {
       if (err) return res.status(500).json(err);
-      res.json({ id: this.lastID, date, startTime, endTime, title, type });
+      res.json({ id: this.lastID, date, startTime, endTime, title, type, userId });
     }
   );
 });
@@ -56,4 +62,4 @@ app.delete("/events/:id", (req, res) => {
   });
 });
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT} - server.js:59`));
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT} - server.js:65`));
